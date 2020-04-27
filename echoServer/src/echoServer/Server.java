@@ -7,12 +7,18 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Server {
 	
 	//static variables of our server
 	private static final String host = "www.writethehostnamehere.com";
-	private static final int port = 1238;
+	private static final int port = 40138;
+	
+	private ArrayList<ClientHandler> clients = new ArrayList<>();
+	private ExecutorService pool = Executors.newFixedThreadPool(10);
 	
 	/*
 	 * Our main constructor
@@ -20,7 +26,12 @@ public class Server {
 	Server(){
 
 		initialise();
-		echo();
+		try {
+			echo();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 	}
 	
@@ -32,17 +43,20 @@ public class Server {
 
 	}
 	
-	private void echo() {
+	private void echo() throws IOException {
         
-       // if (args.length != 1) {
-        //    System.err.println("Usage: java EchoServer <port number>");
-        //    System.exit(1);
-       // }
-        
-        
-        try (
-            ServerSocket serverSocket = new ServerSocket(port);
-            Socket clientSocket = serverSocket.accept();     
+      ServerSocket serverSocket = new ServerSocket(port);
+
+      while(true) {
+          Socket clientSocket = serverSocket.accept();
+          ClientHandler clientThread = new ClientHandler(clientSocket);
+          clients.add(clientThread);
+          pool.execute(clientThread);
+      }
+    }
+	
+	private void echoThread(Socket clientSocket){
+		try (		
             PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);                   
             BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
         ) {
@@ -55,6 +69,6 @@ public class Server {
                 + port + " or listening for a connection");
             System.out.println(e.getMessage());
         }
-    }
+	}          
 	
 }
